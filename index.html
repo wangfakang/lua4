@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Lua4 by wangfakang</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">Lua4</h1>
+        <p class="header">A few small trap about lua </p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/wangfakang/lua4/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/wangfakang/lua4/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/wangfakang/lua4">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/wangfakang">wangfakang</a></p>
+
+
+      </header>
+      <section>
+        <p><code>lua的一些小陷阱</code></p>
+
+<p>北京的四九来了,冻死了......    </p>
+
+<h1>
+<a id="1lua陷阱之的return语句" class="anchor" href="#1lua%E9%99%B7%E9%98%B1%E4%B9%8B%E7%9A%84return%E8%AF%AD%E5%8F%A5" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>1.lua陷阱之的return语句:</h1>
+
+<div class="highlight highlight-source-c"><pre>local function <span class="pl-en">rt_test</span>()
+
+    print(<span class="pl-s"><span class="pl-pds">"</span>func start<span class="pl-pds">"</span></span>)
+
+    if 1 then
+
+        print(<span class="pl-s"><span class="pl-pds">"</span>if entry!<span class="pl-pds">"</span></span>)
+        return 
+        print(<span class="pl-s"><span class="pl-pds">"</span>return end<span class="pl-pds">"</span></span>)
+    else
+        print(<span class="pl-s"><span class="pl-pds">"</span>if exit<span class="pl-pds">"</span></span>)  
+
+    end 
+
+    print(<span class="pl-s"><span class="pl-pds">"</span>func end<span class="pl-pds">"</span></span>)
+end  
+
+
+rt_test()</pre></div>
+
+<p>结果:   </p>
+
+<pre><code>func start    
+if entry!   
+return end    
+func end    
+</code></pre>
+
+<p>对结果就是这样,xie过c的都知道return后面的语句就不会执行了,可是这里lua就反人类了.<br>
+其实在lua中return的用法是我们使用错了,但是为啥用法错了 也不报个错呀!!!!!    </p>
+
+<p>追到底,还是我们对lua的编译解析没有彻底的理解,下面你就知道了:  </p>
+
+<div class="highlight highlight-source-c"><pre>local function <span class="pl-en">rt_test</span>()
+
+    print(<span class="pl-s"><span class="pl-pds">"</span>func start<span class="pl-pds">"</span></span>)
+
+    if 1 then
+
+        print(<span class="pl-s"><span class="pl-pds">"</span>if entry!<span class="pl-pds">"</span></span>)
+        return
+        119 
+        -- print(<span class="pl-s"><span class="pl-pds">"</span>return end<span class="pl-pds">"</span></span>)
+    else
+        print(<span class="pl-s"><span class="pl-pds">"</span>if exit<span class="pl-pds">"</span></span>)  
+
+    end 
+
+    print(<span class="pl-s"><span class="pl-pds">"</span>func end<span class="pl-pds">"</span></span>)
+end  
+
+print(rt_test())</pre></div>
+
+<p>结果: </p>
+
+<pre><code>func start
+if entry!
+119
+</code></pre>
+
+<p>看到了吧,最后打印了119,注意上面return 和 119就是在两行.[可以简单的猜测了吧,return 后面的东西 当做返回值了].     </p>
+
+<p>如果为了测试,我们可以这样使用:   </p>
+
+<pre><code>do return end
+</code></pre>
+
+<h1>
+<a id="2lua中的函数名陷阱" class="anchor" href="#2lua%E4%B8%AD%E7%9A%84%E5%87%BD%E6%95%B0%E5%90%8D%E9%99%B7%E9%98%B1" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>2.lua中的函数名陷阱:</h1>
+
+<div class="highlight highlight-source-c"><pre>function <span class="pl-en">test_a</span>()
+    print(<span class="pl-s"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>)
+end
+
+test_a()                 
+
+function test_a()
+    print(<span class="pl-s"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>)
+end
+
+test_a()  </pre></div>
+
+<p>结果:</p>
+
+<pre><code>a
+b
+</code></pre>
+
+<p>竟然不报错,同名的函数竟然通过了.最后才知道 lua是把这些函数名存在一个表中,当调用的时候只是从栈顶pop而已.   </p>
+
+<h1>
+<a id="3再来一个小的技巧" class="anchor" href="#3%E5%86%8D%E6%9D%A5%E4%B8%80%E4%B8%AA%E5%B0%8F%E7%9A%84%E6%8A%80%E5%B7%A7" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>3.再来一个小的技巧:</h1>
+
+<div class="highlight highlight-source-c"><pre>function <span class="pl-en">printargs</span>(...)
+local num_args=select(<span class="pl-s"><span class="pl-pds">"</span>#<span class="pl-pds">"</span></span>, ...)  --获取传递参数饿个数
+    print(num_args, <span class="pl-s"><span class="pl-pds">"</span>  <span class="pl-pds">"</span></span>, type(num_args))
+    for i=1 ,num_args do  
+        local arg=select(i, ...) --获取第i个参数
+        print (i,arg)
+   end 
+end
+printargs(<span class="pl-s"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>,<span class="pl-c1">3</span>,<span class="pl-s"><span class="pl-pds">"</span>d<span class="pl-pds">"</span></span>)</pre></div>
+
+<p>结果:   </p>
+
+<pre><code>4       number
+1   a
+2   b
+3   3
+4   d
+</code></pre>
+
+<p>没错在lua中就是这么简单-----实现一个多函数参数.    </p>
+
+<p>后面遇到了,在补充.   </p>
+
+<h1>
+<a id="communite--" class="anchor" href="#communite--" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Communite  </h1>
+
+<p>在使用中有任何问题，欢迎反馈给我，可以用以下联系方式跟我交流</p>
+
+<ul>
+<li>邮件(1031379296#qq.com, 把#换成@)</li>
+<li>QQ: 1031379296</li>
+<li>weibo: <a href="http://weibo.com/fakangwang">@王发康</a>
+</li>
+</ul>
+
+<h1>
+<a id="thx" class="anchor" href="#thx" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Thx</h1>
+
+<ul>
+<li>chunshengsterATgmail.com</li>
+</ul>
+
+<h1>
+<a id="author" class="anchor" href="#author" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Author</h1>
+
+<ul>
+<li>Linux\nginx\golang\c\c++爱好者</li>
+<li>欢迎一起交流  一起学习# </li>
+<li>Others say good and Others good</li>
+</ul>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		          <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("A few small trap about lua  陷阱");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
